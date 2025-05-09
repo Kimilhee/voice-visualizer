@@ -29,6 +29,8 @@ const Canvas = styled.canvas`
   border-radius: 15px;
   box-shadow: 0 0 30px rgba(74, 0, 224, 0.5), 0 0 60px rgba(0, 242, 255, 0.3);
   border: 1px solid rgba(0, 242, 255, 0.2);
+  transform: translateZ(0); /* 하드웨어 가속 활성화 */
+  will-change: transform; /* 성능 최적화 힌트 */
 `
 
 // 파티클 인터페이스
@@ -75,16 +77,22 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
   const particlesRef = useRef<Particle[]>([])
   const digitalRainRef = useRef<DigitalRain[]>([])
 
+  // 성능 최적화를 위한 변수들
+  const lastFrameTimeRef = useRef<number>(0)
+  const frameCountRef = useRef<number>(0)
+  const fpsRef = useRef<number>(60)
+  const isLowPerformanceRef = useRef<boolean>(false)
+
   // 디지털 비 초기화 함수
   const initializeDigitalRain = useCallback((width: number, height: number) => {
-    const columns = Math.floor(width / 10)
+    const columns = Math.floor(width / 20) // 간격을 20px로 조정
     digitalRainRef.current = Array.from({ length: columns }, (_, i) => {
       const baseSpeed = 0.1 + Math.random() * 0.8
       const speedVariation = 0.1 + Math.random() * 0.3
       const speedPattern = Math.random() > 0.5 ? 1 : -1
 
       return {
-        x: i * 10 - width / 2,
+        x: i * 20 - width / 2, // x 좌표 계산 수정
         y: -height / 2,
         baseSpeed,
         speedVariation,
@@ -200,9 +208,28 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
     []
   )
 
+  // 성능 모니터링 함수
+  const monitorPerformance = useCallback((currentTime: number) => {
+    frameCountRef.current++
+    if (currentTime - lastFrameTimeRef.current >= 1000) {
+      fpsRef.current = frameCountRef.current
+      frameCountRef.current = 0
+      lastFrameTimeRef.current = currentTime
+
+      // FPS가 30 이하면 저성능 모드로 전환
+      isLowPerformanceRef.current = fpsRef.current < 30
+    }
+  }, [])
+
   // 디지털 비 그리기 함수
   const drawDigitalRain = useCallback(
     (context: CanvasRenderingContext2D, height: number, energy: number) => {
+      if (isLowPerformanceRef.current) {
+        // 저성능 모드에서는 디지털 비 간소화 (2개 중 1개만 표시)
+        const reducedRain = digitalRainRef.current.filter((_, i) => i % 2 === 0)
+        digitalRainRef.current = reducedRain
+      }
+
       context.font =
         "16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
 
@@ -308,6 +335,9 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
         return
       }
 
+      // 성능 모니터링
+      monitorPerformance(timestamp)
+
       const lastTime = animationFrameIdRef.current
         ? animationFrameIdRef.current / 1000
         : 0
@@ -315,8 +345,11 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
       const deltaTime = (currentTime - lastTime) * 1000 || 16.67
 
       const canvas = canvasRef.current
-      const context = canvas.getContext("2d")
+      const context = canvas.getContext("2d", { alpha: false }) // 알파 채널 비활성화로 성능 향상
       if (!context) return
+
+      // 하드웨어 가속 활성화
+      context.imageSmoothingEnabled = false
 
       const bufferLength = analyser.frequencyBinCount
       const freqData = dataArray
@@ -401,7 +434,7 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
       }
 
       // 주파수 바
-      const numBars = 128
+      const numBars = 64 // 128에서 64로 감소
       const barStep = Math.floor(bufferLength / numBars)
       const barMaxRadius = coreRadius + 20 + 150 * (0.5 + overallEnergy * 0.5)
 
@@ -496,6 +529,93 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
         })
       }
 
+      // 저성능 모드에서는 시각 효과 간소화
+      if (isLowPerformanceRef.current) {
+        // 파티클 수 제한
+        if (particlesRef.current.length > 50) {
+          particlesRef.current = particlesRef.current.slice(-50)
+        }
+
+        // 주파수 바 수 감소
+        const numBars = 64 // 128에서 64로 감소
+        const barStep = Math.floor(bufferLength / numBars)
+        const barMaxRadius = coreRadius + 20 + 150 * (0.5 + overallEnergy * 0.5)
+
+        for (let i = 0; i < numBars; i++) {
+          const barFreqIndex = i * barStep
+          if (barFreqIndex >= bufferLength) break
+
+          const barValue = freqData[barFreqIndex] / 255
+          const barHeight = barValue * barMaxRadius
+          if (barHeight < 1) continue
+
+          const angle =
+            (i / numBars) * Math.PI * 2 - Math.PI / 2 + timestamp / 8000
+
+          context.beginPath()
+          context.moveTo(centerX, centerY)
+          context.lineTo(
+            centerX + Math.cos(angle) * barHeight,
+            centerY + Math.sin(angle) * barHeight
+          )
+          context.lineWidth = (width / numBars) * 0.6
+          context.strokeStyle = `hsla(${hue + i * 2 + barValue * 50}, ${
+            80 + barValue * 20
+          }%, ${50 + barValue * 20}%, ${0.6 + barValue * 0.4})`
+          context.stroke()
+
+          context.beginPath()
+          context.arc(
+            centerX + Math.cos(angle) * barHeight,
+            centerY + Math.sin(angle) * barHeight,
+            context.lineWidth / 2 + barValue * 2,
+            0,
+            Math.PI * 2
+          )
+          context.fillStyle = `hsla(${hue + i * 2 + barValue * 50}, ${
+            90 + barValue * 20
+          }%, ${60 + barValue * 20}%, ${0.2 + barValue * 0.3})`
+          context.fill()
+
+          if (barValue > 0.7 && Math.random() < 0.1) {
+            createParticle(
+              centerX + Math.cos(angle) * barHeight,
+              centerY + Math.sin(angle) * barHeight,
+              barValue * 100,
+              `hsla(${hue + i * 2 + barValue * 50}, 100%, 75%, 1)`
+            )
+          }
+        }
+
+        // 외곽 파형
+        context.lineWidth = 2
+        const waveformRadius = barMaxRadius + 30 + midEnergy * 50
+        context.beginPath()
+        for (let i = 0; i < bufferLength * 0.5; i++) {
+          const v = timeData[i] / 128.0
+          const currentRadius = waveformRadius + (v - 1) * (20 + midEnergy * 30)
+          const angle =
+            (i / (bufferLength * 0.5)) * Math.PI * 2 -
+            Math.PI / 2 -
+            timestamp / 10000
+
+          const x = coreX + Math.cos(angle) * currentRadius
+          const y = coreY + Math.sin(angle) * currentRadius
+
+          if (i === 0) context.moveTo(x, y)
+          else context.lineTo(x, y)
+        }
+        context.closePath()
+        context.strokeStyle = `hsla(${(hue + 180) % 360}, 100%, 70%, ${
+          0.3 + overallEnergy * 0.5
+        })`
+        context.shadowColor = `hsla(${(hue + 180) % 360}, 100%, 70%, 0.7)`
+        context.shadowBlur = 10 + overallEnergy * 10
+        context.stroke()
+        context.shadowColor = "transparent"
+        context.shadowBlur = 0
+      }
+
       if (isListening) {
         animationFrameIdRef.current = requestAnimationFrame(draw)
       }
@@ -508,6 +628,7 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
       analyser,
       dataArray,
       timeDomainArray,
+      monitorPerformance,
     ]
   )
 
