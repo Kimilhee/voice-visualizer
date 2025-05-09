@@ -13,28 +13,38 @@ const AudioVisualizerWrapper = styled.div`
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 100vh; // 전체 화면을 채우도록
+  min-height: 100vh;
   margin: 0 auto;
   padding: 20px;
   background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
   color: #e0e0e0;
-  overflow: hidden; // 파티클 등이 화면 밖으로 나갈 때 스크롤 방지
-  position: relative; // 자식 요소의 absolute 포지셔닝 기준
+  overflow: hidden;
+  position: relative;
+`;
+
+const CanvasContainer = styled.div`
+  width: 90vw;
+  max-width: 1200px;
+  position: relative;
+  margin-bottom: 30px;
+
+  &::before {
+    content: "";
+    display: block;
+    padding-top: 56.25%; /* 16:9 비율 */
+  }
 `;
 
 const Canvas = styled.canvas`
-  width: 90vw; // 뷰포트 너비의 90%
-  height: 70vh; // 뷰포트 높이의 70%
-  max-width: 1200px;
-  max-height: 700px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 15px;
-  margin-bottom: 30px;
   box-shadow: 0 0 30px rgba(74, 0, 224, 0.5), 0 0 60px rgba(0, 242, 255, 0.3);
   border: 1px solid rgba(0, 242, 255, 0.2);
-  display: block; // 추가: 블록 레벨 요소로 변경
-  margin-left: auto; // 추가: 좌우 자동 마진으로 중앙 정렬
-  margin-right: auto; // 추가: 좌우 자동 마진으로 중앙 정렬
 `;
 
 const pulseAnimation = keyframes`
@@ -788,7 +798,9 @@ const AudioVisualizer: React.FC = () => {
       <GlobalStyle />
       <AudioVisualizerWrapper>
         <Title>AUDIO REACT SPECTRON</Title>
-        <Canvas ref={canvasRef} />
+        <CanvasContainer>
+          <Canvas ref={canvasRef} />
+        </CanvasContainer>
         <Button
           onClick={handleButtonClick}
           disabled={!!permissionError && !isListening}
