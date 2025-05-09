@@ -134,6 +134,18 @@ const AudioVisualizer: React.FC = () => {
     setPermissionError(null);
     setStatusMessage("마이크 권한 요청 중...");
     try {
+      if (
+        window.location.protocol !== "https:" &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1"
+      ) {
+        setPermissionError(
+          "보안 연결(HTTPS)이 필요합니다. 마이크 접근을 위해서는 HTTPS 환경에서 실행해야 합니다."
+        );
+        setStatusMessage("HTTPS 필요");
+        return;
+      }
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setPermissionError(
           "이 브라우저에서는 마이크 입력을 지원하지 않습니다."
