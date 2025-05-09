@@ -202,12 +202,7 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
 
   // 디지털 비 그리기 함수
   const drawDigitalRain = useCallback(
-    (
-      context: CanvasRenderingContext2D,
-      width: number,
-      height: number,
-      energy: number
-    ) => {
+    (context: CanvasRenderingContext2D, height: number, energy: number) => {
       context.font =
         "16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
 
@@ -491,7 +486,7 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
       }
 
       // 디지털 비 그리기
-      drawDigitalRain(context, width, height, overallEnergy)
+      drawDigitalRain(context, height, overallEnergy)
 
       // 에너지가 높을 때 디지털 비 효과 강화
       if (overallEnergy > 0.3) {
