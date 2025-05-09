@@ -1,54 +1,62 @@
-# React + TypeScript + Vite
+# Voice Visualizer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+음성 입력을 실시간으로 시각화하는 React 애플리케이션입니다.
 
-Currently, two official plugins are available:
+## 주요 기능
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 실시간 음성 입력 분석
+- 웹 오디오 API를 활용한 음성 시각화
+- 반응형 디자인
+- 매트릭스 스타일의 디지털 비 효과
+- 파티클 시스템을 통한 동적 시각 효과
 
-## Expanding the ESLint configuration
+## 기술 스택
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React
+- TypeScript
+- Styled Components
+- Web Audio API
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## 시작하기
+
+### 필수 조건
+
+- Node.js (v14 이상)
+- npm 또는 yarn
+
+### 설치
+
+```bash
+# 저장소 클론
+git clone https://github.com/[your-username]/voice-visualizer.git
+
+# 프로젝트 디렉토리로 이동
+cd voice-visualizer
+
+# 의존성 설치
+npm install
+# 또는
+yarn install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 실행
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```bash
+# 개발 서버 실행
+npm start
+# 또는
+yarn start
 ```
+
+브라우저에서 `http://localhost:3000`으로 접속하여 애플리케이션을 확인할 수 있습니다.
+
+## 사용 방법
+
+1. "분석 시작" 버튼을 클릭합니다.
+2. 마이크 권한을 허용합니다.
+3. 음성을 입력하면 실시간으로 시각화됩니다.
+4. "답변 종료" 버튼을 클릭하여 분석을 종료할 수 있습니다.
+
+## 라이선스
+
+MIT License
