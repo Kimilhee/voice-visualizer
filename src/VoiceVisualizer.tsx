@@ -196,7 +196,9 @@ const AudioVisualizer: React.FC = () => {
         speed: baseSpeed,
         length: 5 + Math.floor(Math.random() * 15),
         characters: Array.from({ length: 20 }, () => {
-          const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
+          const charSet =
+            "0123456789ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
+          // const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
           return {
             char: charSet[Math.floor(Math.random() * charSet.length)],
             brightness: Math.random() * 0.5 + 0.5,
@@ -323,6 +325,13 @@ const AudioVisualizer: React.FC = () => {
       context.font =
         "16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
+      // 에너지 임계값을 0.01로 설정
+      const energyThreshold = 0.01;
+      const effectiveEnergy = Math.max(
+        0,
+        (energy - energyThreshold) / (1 - energyThreshold)
+      );
+
       digitalRainRef.current.forEach((rain) => {
         // 시간에 따른 속도 변화 (변화량 감소)
         rain.currentSpeed += rain.speedVariation * rain.speedPattern * 0.005;
@@ -335,32 +344,50 @@ const AudioVisualizer: React.FC = () => {
           rain.speedPattern *= -1;
         }
 
-        // 에너지에 따른 속도 변화를 더 부드럽게 조정
-        const energyMultiplier = 1 + energy * 0.4 * (0.2 + Math.random() * 0.8);
+        // 에너지가 임계값 이상일 때만 속도 변화 (반응 강도 조절)
+        const energyMultiplier =
+          energy > energyThreshold
+            ? 1 + effectiveEnergy * 0.5 * (0.2 + Math.random() * 0.8)
+            : 1;
         const speed = rain.currentSpeed * energyMultiplier;
-        const baseOpacity = rain.opacity * (0.5 + energy * 0.5);
+        const baseOpacity = rain.opacity * (0.5 + effectiveEnergy * 0.6);
 
         for (let i = 0; i < rain.length; i++) {
           const y = rain.y + i * 18;
           if (y > height / 2) continue;
 
-          // 랜덤하게 글자 변경 (3% 확률, 에너지가 높을수록 약간 더 자주 변경)
-          if (Math.random() < 0.03 * (1 + energy * 0.5)) {
-            const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
+          // 에너지 레벨에 따른 글자 변경 확률 계산
+          let changeProbability = 0;
+          // if (energy > energyThreshold) {
+          // 에너지가 0.01일 때 10%, 0.1일 때 100% 확률로 변경
+          changeProbability = Math.min(1, energy * 2);
+
+          if (Math.random() < changeProbability) {
+            // const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
+            const charSet =
+              "0123456789ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
+            const brightness =
+              0.4 + effectiveEnergy * 0.7 + Math.random() * 0.3;
             rain.characters[i % rain.characters.length] = {
               char: charSet[Math.floor(Math.random() * charSet.length)],
-              brightness: Math.random() * 0.5 + 0.5,
+              brightness: Math.min(1, brightness),
             };
           }
+          // }
 
           const { char, brightness } =
             rain.characters[i % rain.characters.length];
           const fadeRatio = 1 - i / rain.length;
           const charOpacity = baseOpacity * fadeRatio * brightness;
 
-          const hue = 120 + (i / rain.length) * 60;
+          // 에너지가 임계값 이상일 때만 색상 변화 (색상 변화 강도 조절)
+          const hue =
+            energy > energyThreshold ? 120 + effectiveEnergy * 60 : 120;
           const saturation = 100 - (i / rain.length) * 30;
-          const lightness = 50 + (i / rain.length) * 20;
+          const lightness =
+            energy > energyThreshold
+              ? 50 + effectiveEnergy * 25 + (i / rain.length) * 20
+              : 50 + (i / rain.length) * 20;
 
           // 글로우 효과를 위한 그림자 설정
           context.shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, ${
@@ -394,7 +421,9 @@ const AudioVisualizer: React.FC = () => {
         if (rain.y > height / 2) {
           rain.y = -height / 2;
           rain.characters = Array.from({ length: 20 }, () => {
-            const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
+            // const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
+            const charSet =
+              "0123456789ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
             return {
               char: charSet[Math.floor(Math.random() * charSet.length)],
               brightness: Math.random() * 0.5 + 0.5,
