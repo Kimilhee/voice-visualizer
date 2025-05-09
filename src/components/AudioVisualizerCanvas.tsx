@@ -85,14 +85,14 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
 
   // 디지털 비 초기화 함수
   const initializeDigitalRain = useCallback((width: number, height: number) => {
-    const columns = Math.floor(width / 20) // 간격을 20px로 조정
+    const columns = Math.floor(width / 15) // 간격을 20px에서 15px로 줄임
     digitalRainRef.current = Array.from({ length: columns }, (_, i) => {
       const baseSpeed = 0.1 + Math.random() * 0.8
       const speedVariation = 0.1 + Math.random() * 0.3
       const speedPattern = Math.random() > 0.5 ? 1 : -1
 
       return {
-        x: i * 20 - width / 2, // x 좌표 계산 수정
+        x: i * 15 - width / 2, // x 좌표 계산 수정
         y: -height / 2,
         baseSpeed,
         speedVariation,
@@ -394,9 +394,9 @@ const AudioVisualizerCanvas: React.FC<AudioVisualizerCanvasProps> = ({
         freqData.reduce((s, v) => s + v, 0) / (bufferLength * 255)
 
       // 중앙 맥동 구체
-      const coreRadius = 30 + bassEnergy * 100 + overallEnergy * 30
-      const coreX = centerX
-      const coreY = centerY
+      const coreRadius = 35 + bassEnergy * 60 + overallEnergy * 20
+      const coreX = centerX + Math.sin(timestamp / 5000) * (coreRadius * 0.5)
+      const coreY = centerY + Math.cos(timestamp / 5000) * (coreRadius * 0.5)
 
       context.beginPath()
       const coreGradient = context.createRadialGradient(
