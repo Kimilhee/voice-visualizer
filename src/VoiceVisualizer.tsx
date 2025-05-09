@@ -6,6 +6,10 @@ const GlobalStyle = createGlobalStyle`
   // 구글 폰트 import 제거
 `;
 
+// 상수 정의
+const DIGITAL_RAIN_CHARS =
+  "0123456789ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
+
 // 스타일 정의
 const AudioVisualizerWrapper = styled.div`
   display: flex;
@@ -153,6 +157,10 @@ interface DigitalRain {
   opacity: number;
 }
 
+interface AudioError extends Error {
+  name: string;
+}
+
 const AudioVisualizer: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -167,8 +175,38 @@ const AudioVisualizer: React.FC = () => {
   const [statusMessage, setStatusMessage] =
     useState<string>("음성 분석 시스템을 시작하세요");
 
-  const particlesRef = useRef<Particle[]>([]); // 파티클 배열
-  const digitalRainRef = useRef<DigitalRain[]>([]); // 디지털 비 배열 추가
+  const particlesRef = useRef<Particle[]>([]);
+  const digitalRainRef = useRef<DigitalRain[]>([]);
+
+  // 디지털 비 초기화 함수
+  const initializeDigitalRain = useCallback((width: number, height: number) => {
+    const columns = Math.floor(width / 10);
+    digitalRainRef.current = Array.from({ length: columns }, (_, i) => {
+      const baseSpeed = 0.1 + Math.random() * 0.8;
+      const speedVariation = 0.1 + Math.random() * 0.3;
+      const speedPattern = Math.random() > 0.5 ? 1 : -1;
+
+      return {
+        x: i * 10 - width / 2,
+        y: -height / 2,
+        baseSpeed,
+        speedVariation,
+        speedPattern,
+        currentSpeed: baseSpeed,
+        speed: baseSpeed,
+        length: 5 + Math.floor(Math.random() * 15),
+        characters: Array.from({ length: 20 }, () => {
+          return {
+            char: DIGITAL_RAIN_CHARS[
+              Math.floor(Math.random() * DIGITAL_RAIN_CHARS.length)
+            ],
+            brightness: Math.random() * 0.5 + 0.5,
+          };
+        }),
+        opacity: 0.3 + Math.random() * 0.7,
+      };
+    });
+  }, []);
 
   const drawInitialCanvas = useCallback(
     (context: CanvasRenderingContext2D, width: number, height: number) => {
@@ -187,37 +225,29 @@ const AudioVisualizer: React.FC = () => {
     []
   );
 
-  // 디지털 비 초기화 함수 수정
-  const initializeDigitalRain = useCallback((width: number, height: number) => {
-    const columns = Math.floor(width / 10);
-    digitalRainRef.current = Array.from({ length: columns }, (_, i) => {
-      // 각 열마다 고유한 속도 특성 생성
-      const baseSpeed = 0.1 + Math.random() * 0.8; // 0.1 ~ 0.9 범위로 조정
-      const speedVariation = 0.1 + Math.random() * 0.3; // 속도 변화량 감소
-      const speedPattern = Math.random() > 0.5 ? 1 : -1; // 속도 증가/감소 패턴
-
-      return {
-        x: i * 10 - width / 2,
-        y: -height / 2,
-        baseSpeed,
-        speedVariation,
-        speedPattern,
-        currentSpeed: baseSpeed,
-        speed: baseSpeed,
-        length: 5 + Math.floor(Math.random() * 15),
-        characters: Array.from({ length: 20 }, () => {
-          const charSet =
-            "0123456789ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
-          // const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
-          return {
-            char: charSet[Math.floor(Math.random() * charSet.length)],
-            brightness: Math.random() * 0.5 + 0.5,
-          };
-        }),
-        opacity: 0.3 + Math.random() * 0.7,
-      };
-    });
-  }, []);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.scale(dpr, dpr);
+        context.translate(rect.width / 2, rect.height / 2);
+        initializeDigitalRain(rect.width, rect.height);
+        context.fillStyle = "rgba(10, 10, 20, 0.95)";
+        context.fillRect(
+          -rect.width / 2,
+          -rect.height / 2,
+          rect.width,
+          rect.height
+        );
+        drawInitialCanvas(context, rect.width, rect.height);
+      }
+    }
+  }, [drawInitialCanvas, initializeDigitalRain]);
 
   const stopListening = useCallback(() => {
     if (animationFrameIdRef.current) {
@@ -374,12 +404,12 @@ const AudioVisualizer: React.FC = () => {
 
           if (Math.random() < changeProbability) {
             // const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
-            const charSet =
-              "0123456789ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
             const brightness =
               0.4 + effectiveEnergy * 0.7 + Math.random() * 0.3;
             rain.characters[i % rain.characters.length] = {
-              char: charSet[Math.floor(Math.random() * charSet.length)],
+              char: DIGITAL_RAIN_CHARS[
+                Math.floor(Math.random() * DIGITAL_RAIN_CHARS.length)
+              ],
               brightness: Math.min(1, brightness),
             };
           }
@@ -432,10 +462,10 @@ const AudioVisualizer: React.FC = () => {
           rain.y = -height / 2;
           rain.characters = Array.from({ length: 20 }, () => {
             // const charSet = "0123456789ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ";
-            const charSet =
-              "0123456789ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ";
             return {
-              char: charSet[Math.floor(Math.random() * charSet.length)],
+              char: DIGITAL_RAIN_CHARS[
+                Math.floor(Math.random() * DIGITAL_RAIN_CHARS.length)
+              ],
               brightness: Math.random() * 0.5 + 0.5,
             };
           });
@@ -462,7 +492,7 @@ const AudioVisualizer: React.FC = () => {
         ? animationFrameIdRef.current / 1000
         : 0;
       const currentTime = timestamp / 1000;
-      const deltaTime = (currentTime - lastTime) * 1000 || 16.67; // ms 단위
+      const deltaTime = (currentTime - lastTime) * 1000 || 16.67;
 
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
@@ -477,10 +507,10 @@ const AudioVisualizer: React.FC = () => {
 
       const width = canvas.width;
       const height = canvas.height;
-      const centerX = 0; // 중앙이 원점이므로 0으로 변경
-      const centerY = 0; // 중앙이 원점이므로 0으로 변경
+      const centerX = 0;
+      const centerY = 0;
 
-      // 배경 그라데이션 수정
+      // 배경 그라데이션
       const gradient = context.createRadialGradient(
         centerX + Math.sin(timestamp / 5000) * 50,
         centerY,
@@ -495,22 +525,22 @@ const AudioVisualizer: React.FC = () => {
       );
       gradient.addColorStop(1, "rgba(9, 10, 15, 0.9)");
       context.fillStyle = gradient;
-      // 배경을 중앙 기준으로 그리도록 수정
       context.fillRect(-width / 2, -height / 2, width, height);
 
-      // 파티클 그리기 (배경 위, 주 시각화 요소 아래)
+      // 파티클 그리기
       drawParticles(context, deltaTime);
 
-      // 1. 중앙 맥동 구체 (베이스 반응)
+      // 에너지 계산
       const bassEnergy =
         (freqData[0] + freqData[1] + freqData[2] + freqData[3] + freqData[4]) /
         5 /
-        255; // 0-1
+        255;
       const midEnergy =
         freqData.slice(100, 300).reduce((s, v) => s + v, 0) / (200 * 255);
       const overallEnergy =
         freqData.reduce((s, v) => s + v, 0) / (bufferLength * 255);
 
+      // 중앙 맥동 구체
       const coreRadius = 30 + bassEnergy * 100 + overallEnergy * 30;
       const coreX = centerX;
       const coreY = centerY;
@@ -538,7 +568,7 @@ const AudioVisualizer: React.FC = () => {
       context.arc(coreX, coreY, coreRadius, 0, Math.PI * 2);
       context.fill();
 
-      // 중앙 구체에서 파티클 생성 (베이스 강할 때)
+      // 중앙 구체에서 파티클 생성
       if (bassEnergy > 0.6 && Math.random() < 0.5) {
         for (let i = 0; i < 3; i++) {
           createParticle(
@@ -550,24 +580,23 @@ const AudioVisualizer: React.FC = () => {
         }
       }
 
-      // 2. 원형 주파수 바 (중앙 구체 주변)
+      // 주파수 바
       const numBars = 128;
       const barStep = Math.floor(bufferLength / numBars);
       const barMaxRadius = coreRadius + 20 + 150 * (0.5 + overallEnergy * 0.5);
-      const barMinRadius = 0; // 중앙에서 시작
 
       for (let i = 0; i < numBars; i++) {
         const barFreqIndex = i * barStep;
         if (barFreqIndex >= bufferLength) break;
 
-        const barValue = freqData[barFreqIndex] / 255; // 0-1
-        const barHeight = barValue * barMaxRadius; // 단순화된 높이 계산
+        const barValue = freqData[barFreqIndex] / 255;
+        const barHeight = barValue * barMaxRadius;
         if (barHeight < 1) continue;
 
         const angle =
           (i / numBars) * Math.PI * 2 - Math.PI / 2 + timestamp / 8000;
 
-        // 중앙에서 시작하여 바깥쪽으로 뻗어나가는 선
+        // 주파수 바 그리기
         context.beginPath();
         context.moveTo(centerX, centerY);
         context.lineTo(
@@ -605,13 +634,13 @@ const AudioVisualizer: React.FC = () => {
         }
       }
 
-      // 3. 외곽 파형 (시간 도메인)
+      // 외곽 파형
       context.lineWidth = 2;
       const waveformRadius = barMaxRadius + 30 + midEnergy * 50;
       context.beginPath();
       for (let i = 0; i < bufferLength * 0.5; i++) {
-        const v = timeData[i] / 128.0; // 0 to 2
-        const currentRadius = waveformRadius + (v - 1) * (20 + midEnergy * 30); // 진폭에 따른 변화
+        const v = timeData[i] / 128.0;
+        const currentRadius = waveformRadius + (v - 1) * (20 + midEnergy * 30);
         const angle =
           (i / (bufferLength * 0.5)) * Math.PI * 2 -
           Math.PI / 2 -
@@ -630,23 +659,23 @@ const AudioVisualizer: React.FC = () => {
       context.shadowColor = `hsla(${(hue + 180) % 360}, 100%, 70%, 0.7)`;
       context.shadowBlur = 10 + overallEnergy * 10;
       context.stroke();
-      context.shadowColor = "transparent"; // 그림자 초기화
+      context.shadowColor = "transparent";
       context.shadowBlur = 0;
 
-      // 임팩트 플래시 수정
+      // 임팩트 플래시
       if (overallEnergy > 0.7) {
         context.fillStyle = `rgba(255, 255, 255, ${overallEnergy * 0.2 - 0.1})`;
         context.fillRect(-width / 2, -height / 2, width, height);
       }
 
-      // 배경 그라데이션 후, 디지털 비 그리기
+      // 디지털 비 그리기
       drawDigitalRain(context, width, height, overallEnergy);
 
-      // 주파수 바 그리기 전에 디지털 비 효과 강화
+      // 에너지가 높을 때 디지털 비 효과 강화
       if (overallEnergy > 0.3) {
         digitalRainRef.current.forEach((rain) => {
-          rain.speed *= 1.05; // 에너지가 높을 때 속도 증가
-          rain.opacity = Math.min(1, rain.opacity * 1.1); // 밝기 증가
+          rain.speed *= 1.05;
+          rain.opacity = Math.min(1, rain.opacity * 1.1);
         });
       }
 
@@ -676,12 +705,14 @@ const AudioVisualizer: React.FC = () => {
       setStatusMessage("마이크 활성화. 분석 시스템 가동 중...");
 
       const context = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+        (window as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext ||
+        AudioContext)();
       audioContextRef.current = context;
 
       const analyser = context.createAnalyser();
-      analyser.fftSize = 2048; // 줄이면 반응성, 늘리면 해상도 증가
-      analyser.smoothingTimeConstant = 0.8; // 0 (거침) ~ 1 (부드러움)
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8;
       analyser.minDecibels = -90;
       analyser.maxDecibels = -10;
       analyserRef.current = analyser;
@@ -692,58 +723,33 @@ const AudioVisualizer: React.FC = () => {
 
       const freqBufferLength = analyser.frequencyBinCount;
       dataArrayRef.current = new Uint8Array(freqBufferLength);
-      // 시간 도메인 데이터 배열도 fftSize 만큼 필요
       timeDomainArrayRef.current = new Uint8Array(analyser.fftSize);
 
       setIsListening(true);
-    } catch (err: any) {
-      console.error("마이크 접근 오류:", err);
+    } catch (err) {
+      const error = err as AudioError;
+      console.error("마이크 접근 오류:", error);
       if (
-        err.name === "NotAllowedError" ||
-        err.name === "PermissionDeniedError"
+        error.name === "NotAllowedError" ||
+        error.name === "PermissionDeniedError"
       ) {
         setPermissionError(
           "마이크 권한이 거부되었습니다. 브라우저 설정을 확인하세요."
         );
         setStatusMessage("마이크 권한 필요");
       } else if (
-        err.name === "NotFoundError" ||
-        err.name === "DevicesNotFoundError"
+        error.name === "NotFoundError" ||
+        error.name === "DevicesNotFoundError"
       ) {
         setPermissionError("사용 가능한 마이크를 찾을 수 없습니다.");
         setStatusMessage("마이크 없음");
       } else {
-        setPermissionError(`마이크 오류: ${err.message}`);
+        setPermissionError(`마이크 오류: ${error.message}`);
         setStatusMessage("오디오 시작 오류");
       }
       setIsListening(false);
     }
   };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.scale(dpr, dpr);
-        context.translate(rect.width / 2, rect.height / 2);
-        initializeDigitalRain(rect.width, rect.height);
-        // 초기 배경을 중앙 기준으로 그리도록 수정
-        context.fillStyle = "rgba(10, 10, 20, 0.95)";
-        context.fillRect(
-          -rect.width / 2,
-          -rect.height / 2,
-          rect.width,
-          rect.height
-        );
-        drawInitialCanvas(context, rect.width, rect.height);
-      }
-    }
-  }, [drawInitialCanvas, initializeDigitalRain]);
 
   useEffect(() => {
     if (
@@ -797,7 +803,7 @@ const AudioVisualizer: React.FC = () => {
     <>
       <GlobalStyle />
       <AudioVisualizerWrapper>
-        <Title>AUDIO REACT SPECTRON</Title>
+        <Title>인지기능 분석 시스템</Title>
         <CanvasContainer>
           <Canvas ref={canvasRef} />
         </CanvasContainer>
@@ -806,7 +812,7 @@ const AudioVisualizer: React.FC = () => {
           disabled={!!permissionError && !isListening}
           className={isListening ? "recording" : ""}
         >
-          {isListening ? "SYSTEM DEACTIVATE" : "SYSTEM ACTIVATE"}
+          {isListening ? "답변 종료" : "분석 시작"}
         </Button>
         <StatusText>
           {permissionError ? (
