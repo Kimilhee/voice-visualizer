@@ -465,8 +465,11 @@ const HangulAudioVisualizerCanvas: React.FC<
       if (canvas) {
         const context = canvas.getContext("2d")
         if (context) {
+          context.save()
+          context.setTransform(1, 0, 0, 1, 0, 0) // 변환 초기화
           context.fillStyle = "rgba(0, 0, 0, 0.95)"
           context.fillRect(0, 0, canvas.width, canvas.height)
+          context.restore()
         }
       }
     }
