@@ -197,10 +197,12 @@ const HangulAudioVisualizerCanvas: React.FC<
       const midEnergy = midSum / (midRange.length * 255)
 
       // 파동 생성 임계값 낮춤
+      let shouldCreateParticles = false
       if (
-        (bassEnergy > 0.05 || midEnergy > 0.07) && // 임계값 낮춤 (0.1/0.12 → 0.05/0.07)
+        (bassEnergy > 0.05 || midEnergy > 0.07) &&
         timeSinceLastRipple > minTimeBetweenRipples
       ) {
+        shouldCreateParticles = true
         const energyFactor = overallEnergy * 0.7 + bassEnergy * 0.3
         let baseRadiusRatio
         let speedFactor
@@ -268,10 +270,12 @@ const HangulAudioVisualizerCanvas: React.FC<
       }
       context.restore()
 
-      // 한글 파티클 생성 최적화 - 임계값 낮춤
-      if (overallEnergy > 0.01) {
-        // 임계값 낮춤 (0.02 → 0.01)
-        const numNewChars = Math.floor(overallEnergy * 25)
+      // 한글 파티클 생성 - 파동 생성과 연동
+      if (shouldCreateParticles || overallEnergy > 0.008) {
+        // 임계값 더 낮춤
+        const numNewChars = Math.floor(
+          overallEnergy * 25 + (shouldCreateParticles ? 5 : 0)
+        )
         const displayWidth = width / dpr / 2
         const displayHeight = height / dpr / 2
 
