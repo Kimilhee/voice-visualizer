@@ -95,8 +95,8 @@ const HangulAudioVisualizerCanvas: React.FC<
       size: 20 + Math.random() * 20,
       opacity: 0,
       life: 0,
-      maxLife: 45 + Math.random() * 35, // 수명 증가 (30~60 → 45~80)
-      speed: 0.8 + Math.random() * 0.6, // 속도 감소 (1.2~2.0 → 0.8~1.4)
+      maxLife: 35 + Math.random() * 25, // 수명 감소 (45~80 → 35~60)
+      speed: 0.8 + Math.random() * 0.6,
     }
     charactersRef.current.push(char)
   }, [])
